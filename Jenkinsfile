@@ -1,5 +1,14 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:16-alpine'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+    
+    options {
+        skipDefaultCheckout()
+    }
     
     environment {
         DOCKER_REGISTRY = 'localhost:5001'
@@ -24,6 +33,17 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh 'npm test'
+            }
+        }
+
+        stage('Setup Docker and Kubectl') {
+            steps {
+                sh '''
+                    apk add --no-cache docker docker-cli-buildx curl
+                    curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+                    chmod +x ./kubectl
+                    mv ./kubectl /usr/local/bin/kubectl
+                '''
             }
         }
 
